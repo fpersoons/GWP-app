@@ -1,5 +1,5 @@
 // Persistance locale : évaluations dans localStorage, photos dans IndexedDB
-import { DOMAINS } from '../data/criteria.js';
+import { DOMAINS, BUILDING_TYPES, allCriteria, isOrg, SITE_FIELDS } from '../data/criteria.js';
 
 const KEY = 'gwp.evaluations.v1';
 const SETTINGS_KEY = 'gwp.settings.v1';
@@ -7,7 +7,50 @@ const SETTINGS_KEY = 'gwp.settings.v1';
 export function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
 
 export function loadAll() {
-  try { return JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { return []; }
+  let list; try { list = JSON.parse(localStorage.getItem(KEY) || '[]'); } catch { list = []; }
+  let changed = false;
+  list = list.map(e => { if (e.schema === 2) return e; changed = true; return migrate(e); });
+  if (changed) saveAll(list);
+  return list;
+}
+
+// Migration v1 → v2 : une évaluation « un entrepôt » devient une centrale à un seul entrepôt.
+// Les réponses de portée 'org' passent au niveau centrale, les autres restent sur l'entrepôt.
+export function migrate(e) {
+  if (e.schema === 2) return e;
+  const orgAnswers = {}, siteAnswers = {};
+  for (const c of allCriteria()) { const a = (e.answers || {})[c.id]; if (!a) continue; (isOrg(c) ? orgAnswers : siteAnswers)[c.id] = a; }
+  const info = { ...(e.info || {}) };
+  const bInfo = {};
+  for (const f of SITE_FIELDS) if (info[f.id] !== undefined) { bInfo[f.id] = info[f.id]; delete info[f.id]; }
+  if (info.notes && !bInfo.site_notes) { /* les remarques générales restent au niveau centrale */ }
+  const building = { id: uid(), name: bInfo.warehouse || 'Entrepôt principal', type: 'sec', info: bInfo, answers: siteAnswers, detached: {} };
+  return { id: e.id, schema: 2, createdAt: e.createdAt, updatedAt: e.updatedAt, info, weights: e.weights, consolidation: 'area', orgAnswers, buildings: [building], photosMigrated: false };
+}
+
+// Migration des photos v1 (clé = critId) vers les clés v2 (« org:I01 » ou « <bid>:I01 »). Appelée à l'ouverture.
+export async function migratePhotos(ev) {
+  if (ev.photosMigrated !== false) return;
+  const b = ev.buildings[0];
+  const photos = await getPhotos(ev.id);
+  for (const p of photos) {
+    if (p.critId.includes(':')) continue;
+    const c = allCriteria().find(x => x.id === p.critId);
+    p.critId = c && isOrg(c) ? `org:${p.critId}` : `${b.id}:${p.critId}`;
+    await tx('readwrite', st => st.put(p));
+  }
+  ev.photosMigrated = true; saveEvaluation(ev);
+}
+
+export function newBuilding(ev, name = '', type = 'sec') {
+  const b = { id: uid(), name, type, info: {}, answers: {}, detached: {} };
+  applyTypePreset(b, type);
+  return b;
+}
+// Pré-réglage N/A du type d'entrepôt (n'écrase pas une réponse déjà donnée)
+export function applyTypePreset(b, type) {
+  const t = BUILDING_TYPES.find(x => x.id === type); if (!t) return;
+  for (const id of t.na) { if (!b.answers[id] || !b.answers[id].a) b.answers[id] = { ...(b.answers[id] || {}), a: 'na' }; }
 }
 export function saveAll(list) { localStorage.setItem(KEY, JSON.stringify(list)); }
 
@@ -30,12 +73,14 @@ export function deleteEvaluation(id) {
 export function newEvaluation() {
   const settings = loadSettings();
   return {
-    id: uid(),
+    id: uid(), schema: 2,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
     info: { date: new Date().toISOString().slice(0, 10) },
-    answers: {},
     weights: { ...settings.weights },
+    consolidation: 'area',
+    orgAnswers: {},
+    buildings: [],
   };
 }
 
@@ -74,6 +119,7 @@ export async function addPhoto(evalId, critId, dataUrl) {
   await tx('readwrite', st => st.put(p));
   return p;
 }
+export function photoKey(building, critId) { return building ? `${building.id}:${critId}` : `org:${critId}`; }
 export function getPhotos(evalId, critId) {
   return openDB().then(db => new Promise((resolve, reject) => {
     const st = db.transaction(STORE).objectStore(STORE);

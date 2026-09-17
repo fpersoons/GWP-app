@@ -6,13 +6,14 @@ Elle succède à l'outil Excel `GWP-TOOLS/GWP_Assessment_FR.xlsx` (GHSC-FTA) : m
 
 ## Fonctionnalités
 
+- **Modèle centrale → entrepôts** : une évaluation couvre une centrale d'achat et ses N bâtiments (magasins, chambres froides, annexes). 68 critères de portée *organisation* (politiques, SOP, système, formation, qualité) sont répondus une fois et hérités par tous les entrepôts (détachables au cas par cas) ; 86 critères de portée *entrepôt* sont constatés dans chaque bâtiment. Types de bâtiment avec pré-réglage N/A. Trois lectures : score complet et score spécifique par entrepôt, score consolidé de la centrale (critères moyennés sur les entrepôts, pondérés par la surface de stockage ou en moyenne simple).
 - **Six domaines** : Infrastructure & conditions de stockage · Matériels & équipements · Gestion du stockage & opérations · Contrôle des stocks · Rappels, retours, rejets & périmés · Management & système qualité.
 - **Notation** : Conforme / Partiel / Non conforme / N/A, pondérée par criticité (Critique ×3, Majeur ×2, Mineur ×1). Poids des domaines modifiables. Score global, paliers (0–35 / 36–70 / 71–100 %), priorité d'amélioration = poids × (1 − score).
 - **Aide contextuelle** sur chaque critère : comment vérifier, référence normative, recommandation.
 - **Observations et photos** (appareil photo de la tablette) par critère.
 - **Sauvegarde automatique locale** (fonctionne sans connexion, installable comme application — PWA).
-- **Synthèse** : radar, tableau par domaine et section, liste des non-conformités classées par criticité, plan d'action.
-- **Comparaison** de plusieurs entrepôts.
+- **Synthèse** : radar, scores consolidés et organisation par domaine, matrice entrepôts × domaines, non-conformités par niveau (organisation / chaque entrepôt) classées par criticité, plan d'action.
+- **Comparaison** entre centrales et entre tous les entrepôts.
 - **Exports** : JSON (sauvegarde/partage, réimportable), CSV (Excel), rapport imprimable / PDF.
 
 ## Application en ligne
@@ -73,7 +74,7 @@ Tout est dans `app/data/criteria.js` : ajouter/retirer un critère, changer sa c
 node -e "import('./app/data/criteria.js').then(m=>{ /* voir docs */ })"
 ```
 
-Les évaluations déjà enregistrées conservent leurs réponses par identifiant de critère (`I01`, `S14`…) ; ne pas réutiliser un identifiant pour un critère différent.
+Les évaluations déjà enregistrées conservent leurs réponses par identifiant de critère (`I01`, `S14`…) ; ne pas réutiliser un identifiant pour un critère différent. La portée se règle avec `scope: 'org'` (absent = entrepôt) ; les types de bâtiment et leurs N/A par défaut sont dans `BUILDING_TYPES`. Les évaluations au format v1 (un entrepôt) sont migrées automatiquement à l'ouverture (schéma v2).
 
 ## Sources
 

@@ -53,7 +53,18 @@
 | Rappels, Rejets & Expirés | 4–11 | R01, R03, R04, R06 |
 | Management | 5–27 | M01–M04, M08, M09, M12–M14, M22, M23, I11, I38 |
 
-## 5. Pistes d'évolution possibles
+## 5. Modèle « centrale → entrepôts » (v2.0, 17/09/2026)
+
+L'Excel évaluait chaque bâtiment (jusqu'à 10 colonnes) avec la totalité du questionnaire, management compris. Cas typique : CENAME (Cameroun) avec 13 magasins sous une même direction, un même système (SAGE) et les mêmes procédures. L'application distingue désormais :
+
+| Portée | Nombre | Principe | Exemples |
+|---|---|---|---|
+| Organisation | 68 | Existence d'une politique, SOP, système, programme, organisation — répondu une fois pour la centrale, hérité par tous les entrepôts, détachable pour un bâtiment atypique | Organigramme, SOP, formation, CAPA, revue de direction, logiciel de stock, procédure de rappel, traçabilité, programme nuisibles, calibration, plan de contingence froid |
+| Entrepôt | 86 | Constat physique ou application observée, y compris les utilités propres au site | Sol/murs/toit, température, extincteurs, génératrice, périmètre, zone inflammables, racks, empilage, étiquetage, quarantaine, FEFO vérifié, concordance fiche/physique, périmés en rayon |
+
+Scores : **spécifique** (constats seuls, départage les bâtiments), **complet** (constats + organisation héritée, équivalent d'une évaluation Excel) et **consolidé** (chaque critère moyenné sur les entrepôts, pondéré par la surface de stockage). Les évaluations existantes deviennent des centrales à un entrepôt.
+
+## 6. Pistes d'évolution possibles
 
 - Pondération par défaut : la logique TRS 1025 justifierait de relever « Rappels, retours, rejets » (5 %) au profit d'une répartition 15/10/15/25/10/25. Le paramétrage est disponible dans l'application ; la valeur par défaut a été conservée pour la continuité avec les évaluations historiques.
 - Synchronisation multi-appareils (serveur ou dossier partagé) si plusieurs évaluateurs travaillent en parallèle.
