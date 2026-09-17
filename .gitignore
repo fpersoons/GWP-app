@@ -1,0 +1,5 @@
+.DS_Store
+*.log
+# Documents de référence et outil Excel d'origine : volumineux, tiers, non versionnés
+RESSOURCES/
+GWP-TOOLS/
