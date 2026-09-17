@@ -1,0 +1,23 @@
+# Déploiement Netlify : site statique servi depuis app/, sans étape de build.
+[build]
+  publish = "app"
+  command = ""
+
+# Le service worker et le manifeste ne doivent pas être mis en cache par le navigateur,
+# sinon les mises à jour de l'application ne seraient pas détectées.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
