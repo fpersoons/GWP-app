@@ -8,6 +8,11 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="apple-mobile-web-app-title" content="GWP">
   <title>GWP — Évaluation des Bonnes Pratiques d’Entreposage</title>
+  <script>
+    // Les chemins de l'application sont relatifs : si l'URL est /GWP-app (sans barre finale, via le portail),
+    // on la normalise en /GWP-app/ pour que css/, js/ et sw.js se résolvent correctement.
+    if (!location.pathname.endsWith('/') && !location.pathname.endsWith('.html')) location.replace(location.pathname + '/' + location.search + location.hash);
+  </script>
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="icon" href="icons/icon.svg" type="image/svg+xml">
   <link rel="apple-touch-icon" href="icons/icon-192.png">
