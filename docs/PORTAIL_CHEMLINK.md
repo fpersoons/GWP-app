@@ -2,17 +2,18 @@
 
 L'application est hébergée sur le site Netlify `gwp-app` (https://gwp-app.netlify.app), déployé automatiquement depuis GitHub. Comme pour les autres applications, le portail chemlink.app la proxifie sous `/GWP-app/` avec une réécriture 200.
 
-## À ajouter dans le dépôt du portail (site Netlify `chemlink`)
+## Fait le 17/09/2026
+
+Le portail est désormais versionné sur GitHub (`fpersoons/chemlink-portail`, privé, dossier local `~/Documents/ClaudeApp/chemlink-portail`) et le site Netlify `chemlink` se déploie depuis ce dépôt. Les éléments ci-dessous y sont en place.
+
+## Configuration dans le dépôt du portail
 
 ### `netlify.toml` — avant tout catch-all éventuel
 
 ```toml
-# Sans barre oblique finale, les chemins relatifs de l'application ne se résolvent pas
-[[redirects]]
-  from = "/GWP-app"
-  to = "/GWP-app/"
-  status = 301
-
+# Note : pas de règle 301 "/GWP-app" -> "/GWP-app/" (Netlify traite les deux formes comme
+# équivalentes, ce qui créerait une boucle) ; c'est l'application qui normalise l'URL
+# sans barre finale (script dans app/index.html).
 [[redirects]]
   from = "/GWP-app/*"
   to = "https://gwp-app.netlify.app/:splat"
