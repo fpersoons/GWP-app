@@ -15,7 +15,11 @@ Elle succède à l'outil Excel `GWP-TOOLS/GWP_Assessment_FR.xlsx` (GHSC-FTA) : m
 - **Comparaison** de plusieurs entrepôts.
 - **Exports** : JSON (sauvegarde/partage, réimportable), CSV (Excel), rapport imprimable / PDF.
 
-## Lancer l'application
+## Application en ligne
+
+**<https://fpersoons.github.io/GWP-app/>** — déployée automatiquement par GitHub Actions (`.github/workflows/deploy.yml`) à chaque push sur `main`. Sur tablette : ouvrir l'URL dans Safari/Chrome, puis « Ajouter à l'écran d'accueil » ; l'application fonctionne ensuite hors ligne et se met à jour automatiquement à la prochaine ouverture connectée.
+
+## Lancer en local
 
 Aucune installation ni compilation. Servir le dossier `app/` par HTTP :
 
@@ -23,9 +27,15 @@ Aucune installation ni compilation. Servir le dossier `app/` par HTTP :
 python3 -m http.server 8765 --directory app
 ```
 
-puis ouvrir <http://localhost:8765>. Sur tablette, ouvrir l'URL du serveur (même réseau Wi-Fi) puis « Ajouter à l'écran d'accueil » pour l'installer ; elle fonctionne ensuite hors ligne.
+puis ouvrir <http://localhost:8765>.
 
-Pour un déploiement, copier `app/` sur n'importe quel hébergement statique (GitHub Pages, Netlify, serveur interne). HTTPS est requis pour le mode hors ligne et l'accès à l'appareil photo.
+## Publier une mise à jour
+
+```bash
+git add -A && git commit -m "Description du changement" && git push
+```
+
+Le déploiement prend environ une minute (onglet *Actions* du dépôt). Les évaluations enregistrées sur les tablettes ne sont jamais envoyées à GitHub : elles restent dans le navigateur de chaque appareil (export JSON pour les partager).
 
 ## Structure
 
