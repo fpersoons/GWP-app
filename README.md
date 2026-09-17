@@ -41,6 +41,10 @@ Le déploiement prend environ une minute (tableau de bord Netlify du site `gwp-a
 
 Le dossier du projet est dans OneDrive : le dépôt Git local (`.git/`) et les fichiers suivent donc sur chaque ordinateur. GitHub reste la référence : faire `git pull` avant de travailler et `git push` après. Éviter de modifier le projet simultanément sur deux machines avant que OneDrive n'ait fini de synchroniser, sous peine de conflits dans `.git/`.
 
+## Design
+
+Interface conforme au design system commun (`../design-system/DESIGN_SYSTEM.md`, preset CHEMONICS) : palette Chemonics en variables `--chem-*`, Montserrat avec repli `system-ui` (utilisable hors ligne), icônes SVG au trait (`app/js/icons.js`), densité tablette (corps 12 px, cibles tactiles ≥ 28 px).
+
 ## Structure
 
 ```
@@ -51,6 +55,7 @@ app/
   js/scoring.js         moteur de notation
   js/store.js           persistance (localStorage + IndexedDB pour les photos)
   js/export.js          export JSON / CSV, import
+  js/icons.js           icônes SVG au trait (design system §6)
   data/criteria.js      RÉFÉRENTIEL (domaines, sections, critères, criticité, sources)
   sw.js, manifest.webmanifest, icons/   PWA
 docs/

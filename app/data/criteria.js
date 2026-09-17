@@ -25,10 +25,11 @@ export const ANSWERS = {
   na: { label: 'N/A', value: null, short: 'NA' },
 };
 
+// Paliers : couleur de remplissage (color), teinte de fond (bg) et texte (fg) — preset CHEMONICS
 export const TIERS = [
-  { min: 0, max: 35, label: 'Premier palier', color: '#c0392b' },
-  { min: 36, max: 70, label: 'Second palier', color: '#e67e22' },
-  { min: 71, max: 100, label: 'Dernier palier', color: '#27ae60' },
+  { min: 0, max: 35, label: 'Premier palier', color: '#F0532D', bg: '#FDE0D8', fg: '#7B0046' },
+  { min: 36, max: 70, label: 'Second palier', color: '#FEBE10', bg: '#FFEFC3', fg: '#333E48' },
+  { min: 71, max: 100, label: 'Dernier palier', color: '#9CB92D', bg: '#EBF1D5', fg: '#377225' },
 ];
 
 // Champs descriptifs de l'entrepôt (non scorés)
@@ -72,7 +73,7 @@ export const DOMAINS = [
     title: 'Infrastructure & conditions de stockage',
     short: 'Infrastructure',
     weight: 0.15,
-    color: '#2e86c1',
+    color: '#005D83',
     sections: [
       {
         id: 'infra.site',
@@ -209,7 +210,7 @@ export const DOMAINS = [
     title: 'Matériels & équipements de manutention',
     short: 'Équipements',
     weight: 0.15,
-    color: '#8e44ad',
+    color: '#00A095',
     sections: [
       {
         id: 'equip.mhe',
@@ -283,7 +284,7 @@ export const DOMAINS = [
     title: 'Gestion du stockage & opérations',
     short: 'Opérations',
     weight: 0.15,
-    color: '#16a085',
+    color: '#377225',
     sections: [
       {
         id: 'ops.org',
@@ -365,7 +366,7 @@ export const DOMAINS = [
     title: 'Contrôle des stocks',
     short: 'Contrôle stocks',
     weight: 0.25,
-    color: '#d35400',
+    color: '#F6871F',
     sections: [
       {
         id: 'stock.records',
@@ -435,7 +436,7 @@ export const DOMAINS = [
     title: 'Rappels, retours, rejets & produits périmés',
     short: 'Rappels & rejets',
     weight: 0.05,
-    color: '#c0392b',
+    color: '#F0532D',
     sections: [
       {
         id: 'recall.returns',
@@ -483,7 +484,7 @@ export const DOMAINS = [
     title: 'Management & système qualité',
     short: 'Management',
     weight: 0.25,
-    color: '#2c3e50',
+    color: '#7B0046',
     sections: [
       {
         id: 'mgmt.org',

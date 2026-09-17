@@ -2,6 +2,7 @@ import { DOMAINS, CRITICALITY, ANSWERS, TIERS, IDENTIFICATION_FIELDS, criteriaCo
 import { computeScores, nonConformities, pct, tierOf, isAnswered, criterionValue } from './scoring.js';
 import * as store from './store.js';
 import { exportJSON, exportCSV, importJSONFile } from './export.js';
+import { icon } from './icons.js';
 
 const $ = (s, r = document) => r.querySelector(s);
 const app = $('#app');
@@ -12,7 +13,14 @@ let saveTimer = null;
 function persist() {
   if (!current) return;
   clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => { store.saveEvaluation(current); flash('Enregistré'); }, 300);
+  setSync('saving');
+  saveTimer = setTimeout(() => { store.saveEvaluation(current); setSync('saved'); }, 300);
+}
+// §8.7 Indicateur de synchronisation dans le header
+function setSync(state) {
+  const el = $('#sync'); if (!el) return;
+  el.className = 'sync ' + state;
+  el.innerHTML = state === 'saving' ? 'Synchronisation…' : `${icon('cloudCheck', 12)} Sauvegardé`;
 }
 function flash(msg) {
   const el = $('#toast'); el.textContent = msg; el.classList.add('show');
@@ -45,15 +53,17 @@ window.addEventListener('hashchange', route);
 
 // ---------------- Layout ----------------
 function shell(title, body, { nav = true, back = null } = {}) {
+  const hash = location.hash;
   app.innerHTML = `
     <header class="topbar">
-      ${back ? `<a class="back" href="#${back}" aria-label="Retour">‹</a>` : `<span class="logo">GWP</span>`}
-      <h1>${title}</h1>
-      <nav class="topnav">
-        <a href="#/" title="Accueil">🏠</a>
-        <a href="#/compare" title="Comparer">📊</a>
-        <a href="#/referentiel" title="Référentiel">📚</a>
-        <a href="#/settings" title="Paramètres">⚙️</a>
+      ${back ? `<a class="back" href="#${back}" aria-label="Retour">${icon('chevronLeft', 18)}</a>` : ''}
+      <h1><span class="brand">${icon('warehouse', 16)}<span class="brand-text">GWP</span></span><span class="title-text">${title}</span></h1>
+      ${current ? '<span id="sync" class="sync saved">' + icon('cloudCheck', 12) + ' Sauvegardé</span>' : ''}
+      <nav class="topnav" aria-label="Navigation principale">
+        <a href="#/" class="${hash === '' || hash === '#/' ? 'active' : ''}" title="Accueil" aria-label="Accueil">${icon('home', 16)}</a>
+        <a href="#/compare" class="${hash.startsWith('#/compare') ? 'active' : ''}" title="Comparer les entrepôts" aria-label="Comparer les entrepôts">${icon('chart', 16)}</a>
+        <a href="#/referentiel" class="${hash.startsWith('#/referentiel') ? 'active' : ''}" title="Référentiel des critères" aria-label="Référentiel des critères">${icon('book', 16)}</a>
+        <a href="#/settings" class="${hash.startsWith('#/settings') ? 'active' : ''}" title="Paramètres" aria-label="Paramètres">${icon('settings', 16)}</a>
       </nav>
     </header>
     ${nav && current ? evalTabs() : ''}
@@ -72,9 +82,9 @@ function evalTabs() {
   const id = current.id;
   return `<nav class="tabs">
     ${tab(`/eval/${id}/info`, 'Identification')}
-    ${sc.domains.map(d => tab(`/eval/${id}/domain/${d.id}`, `<span class="code" style="background:${d.color}">${d.code}</span> ${d.short}`, ` <small>${d.answered}/${d.total}</small>`)).join('')}
-    ${tab(`/eval/${id}/summary`, '📈 Synthèse')}
-    ${tab(`/eval/${id}/report`, '🖨 Rapport')}
+    ${sc.domains.map(d => tab(`/eval/${id}/domain/${d.id}`, `<span class="code" style="--c:${d.color}">${d.code}</span> ${d.short}`, ` <small>${d.answered}/${d.total}</small>`)).join('')}
+    ${tab(`/eval/${id}/summary`, `${icon('chart', 12)} Synthèse`)}
+    ${tab(`/eval/${id}/report`, `${icon('printer', 12)} Rapport`)}
   </nav>`;
 }
 
@@ -90,28 +100,29 @@ function renderHome() {
           <div class="card-title">${esc(e.info.warehouse || 'Entrepôt sans nom')}</div>
           <div class="muted">${esc(e.info.organisation || '')} ${e.info.location ? '· ' + esc(e.info.location) : ''}</div>
         </div>
-        <div class="score-bubble" style="background:${sc.tier ? sc.tier.color : '#999'}">${sc.overall === null ? '—' : Math.round(sc.overall * 100)}</div>
+        <div class="score-bubble" style="${tierVars(sc.tier)}" title="Score global">${sc.overall === null ? '—' : Math.round(sc.overall * 100)}</div>
       </div>
       <div class="muted small">Évaluation du ${esc(e.info.date || '?')} · ${sc.answered}/${sc.total} critères (${prog} %)</div>
       <div class="progress"><div style="width:${prog}%"></div></div>
-      <div class="mini-domains">${sc.domains.map(d => `<span title="${esc(d.title)}" style="background:${d.color}">${d.code} ${d.score === null ? '—' : Math.round(d.score * 100)}</span>`).join('')}</div>
+      <div class="mini-domains">${sc.domains.map(d => `<span class="code" title="${esc(d.title)}" style="--c:${d.color}">${d.code} ${d.score === null ? '—' : Math.round(d.score * 100)}</span>`).join('')}</div>
       <div class="card-actions">
-        <button class="btn small" data-action="dup" data-id="${e.id}">Dupliquer</button>
-        <button class="btn small" data-action="export" data-id="${e.id}">Exporter JSON</button>
-        <button class="btn small danger" data-action="del" data-id="${e.id}">Supprimer</button>
+        <button class="btn small" data-action="dup" data-id="${e.id}">${icon('copy', 11)} Dupliquer</button>
+        <button class="btn small" data-action="export" data-id="${e.id}">${icon('download', 11)} Exporter JSON</button>
+        <button class="btn small danger" data-action="del" data-id="${e.id}">${icon('trash', 11)} Supprimer</button>
       </div>
     </a>`;
   }).join('');
   shell('Évaluation des Bonnes Pratiques d’Entreposage', `
     <div class="hero">
-      <p>Outil d’évaluation de la conformité des entrepôts de produits de santé aux Bonnes Pratiques de Stockage et de Distribution (OMS TRS 1025, Annexe 7). ${criteriaCount()} critères répartis en ${DOMAINS.length} domaines fonctionnels.</p>
+      <div class="title">Évaluation des Bonnes Pratiques d’Entreposage</div>
+      <p>Conformité des entrepôts de produits de santé aux Bonnes Pratiques de Stockage et de Distribution (OMS TRS 1025, Annexe 7) — ${criteriaCount()} critères répartis en ${DOMAINS.length} domaines fonctionnels.</p>
       <div class="row">
-        <button class="btn primary big" id="new-eval">＋ Nouvelle évaluation</button>
-        <label class="btn big">📂 Importer (JSON)<input type="file" id="import" accept="application/json" hidden></label>
+        <button class="btn primary big" id="new-eval">${icon('plus', 14)} Nouvelle évaluation</button>
+        <label class="btn big" tabindex="0">${icon('upload', 14)} Importer (JSON)<input type="file" id="import" accept="application/json" hidden></label>
       </div>
     </div>
-    <h2>Évaluations enregistrées ${list.length ? `<small>(${list.length})</small>` : ''}</h2>
-    ${list.length ? `<div class="cards">${cards}</div>` : '<p class="muted">Aucune évaluation. Créez-en une pour commencer.</p>'}
+    <h2>${icon('list', 14)} Évaluations enregistrées ${list.length ? `<small>(${list.length})</small>` : ''}</h2>
+    ${list.length ? `<div class="cards">${cards}</div>` : '<p class="empty">Aucune évaluation — cliquez sur « Nouvelle évaluation ».</p>'}
     <p class="muted small footnote">Les données sont stockées localement sur cet appareil (navigateur). Exportez régulièrement vos évaluations en JSON pour les sauvegarder ou les partager.</p>
   `, { nav: false });
   $('#new-eval').onclick = () => { const ev = store.saveEvaluation(store.newEvaluation()); location.hash = `/eval/${ev.id}/info`; };
@@ -144,22 +155,22 @@ function renderInfo() {
   const tot = ['area_receiving', 'area_storage', 'area_dispatch', 'area_quarantine', 'area_unusable'].reduce((a, k) => a + (parseFloat(info[k]) || 0), 0);
   shell('Identification', `
     <section class="panel">
-      <h2>Entrepôt évalué</h2>
+      <h2>${icon('warehouse', 14)} Entrepôt évalué</h2>
       <div class="grid">${general.map(field).join('')}</div>
     </section>
     <section class="panel">
-      <h2>Surfaces et capacités</h2>
+      <h2>${icon('list', 14)} Surfaces et capacités</h2>
       <div class="grid">${surfaces.map(field).join('')}</div>
       <p class="muted">Surface totale (réception + stockage + expédition + quarantaine + inutilisables) : <b id="tot-area">${tot.toLocaleString('fr-FR')} m²</b>
       ${info.height ? ` · Volume approximatif : <b>${Math.round(tot * parseFloat(info.height)).toLocaleString('fr-FR')} m³</b>` : ''}</p>
     </section>
     <section class="panel">
-      <h2>Pondération des domaines pour cette évaluation</h2>
+      <h2>${icon('settings', 14)} Pondération des domaines pour cette évaluation</h2>
       <p class="muted small">Par défaut : Infrastructure 15 %, Équipements 15 %, Opérations 15 %, Contrôle des stocks 25 %, Rappels 5 %, Management 25 %. Le total doit faire 100 %.</p>
-      <div class="weights">${DOMAINS.map(d => `<label><span class="code" style="background:${d.color}">${d.code}</span> ${esc(d.short)} <input type="number" min="0" max="100" data-weight="${d.id}" value="${Math.round((current.weights[d.id] ?? d.weight) * 100)}"> %</label>`).join('')}
+      <div class="weights">${DOMAINS.map(d => `<label><span class="code" style="--c:${d.color}">${d.code}</span> ${esc(d.short)} <input type="number" min="0" max="100" data-weight="${d.id}" value="${Math.round((current.weights[d.id] ?? d.weight) * 100)}"> %</label>`).join('')}
       <div class="muted" id="wsum"></div></div>
     </section>
-    <div class="row end"><a class="btn primary big" href="#/eval/${current.id}/domain/${DOMAINS[0].id}">Commencer l’évaluation ›</a></div>
+    <div class="row end"><a class="btn primary big" href="#/eval/${current.id}/domain/${DOMAINS[0].id}">Commencer l’évaluation ${icon('chevronRight', 14)}</a></div>
   `, { back: '/' });
   app.querySelectorAll('[data-field]').forEach(el => el.oninput = () => {
     current.info[el.dataset.field] = el.value; persist();
@@ -180,8 +191,8 @@ function renderDomain(domainId) {
   const idx = DOMAINS.indexOf(d);
   const prev = DOMAINS[idx - 1], next = DOMAINS[idx + 1];
   const body = `
-    <div class="domain-head" style="border-color:${d.color}">
-      <h2><span class="code" style="background:${d.color}">${d.code}</span> ${esc(d.title)}</h2>
+    <div class="domain-head" style="--c:${d.color}">
+      <h2><span class="code" style="--c:${d.color}">${d.code}</span> ${esc(d.title)}</h2>
       <div class="domain-stats">
         <span>Score : <b>${pct(sc.score)}</b></span>
         <span>Répondu : <b>${sc.answered}/${sc.total}</b></span>
@@ -194,8 +205,8 @@ function renderDomain(domainId) {
         ${s.criteria.map(c => criterionCard(c)).join('')}
       </section>`).join('')}
     <div class="row between pager">
-      ${prev ? `<a class="btn" href="#/eval/${current.id}/domain/${prev.id}">‹ ${esc(prev.short)}</a>` : `<a class="btn" href="#/eval/${current.id}/info">‹ Identification</a>`}
-      ${next ? `<a class="btn primary" href="#/eval/${current.id}/domain/${next.id}">${esc(next.short)} ›</a>` : `<a class="btn primary" href="#/eval/${current.id}/summary">Synthèse ›</a>`}
+      ${prev ? `<a class="btn" href="#/eval/${current.id}/domain/${prev.id}">${icon('chevronLeft', 12)} ${esc(prev.short)}</a>` : `<a class="btn" href="#/eval/${current.id}/info">${icon('chevronLeft', 12)} Identification</a>`}
+      ${next ? `<a class="btn primary" href="#/eval/${current.id}/domain/${next.id}">${esc(next.short)} ${icon('chevronRight', 12)}</a>` : `<a class="btn primary" href="#/eval/${current.id}/summary">Synthèse ${icon('chevronRight', 12)}</a>`}
     </div>`;
   shell(esc(current.info.warehouse || 'Évaluation'), body, { back: '/' });
   bindCriteria();
@@ -205,20 +216,21 @@ function renderDomain(domainId) {
 function criterionCard(c) {
   const ans = current.answers[c.id] || {};
   const cr = CRITICALITY[c.crit];
-  const btn = (k, label) => `<button class="ans ${k} ${ans.a === k ? 'on' : ''}" data-ans="${k}" data-crit="${c.id}">${label}</button>`;
+  const glyph = { yes: 'checkCircle', partial: 'halfCircle', no: 'xCircle', na: 'minusCircle' };
+  const btn = (k, label) => `<button class="ans ${k} ${ans.a === k ? 'on' : ''}" data-ans="${k}" data-crit="${c.id}" aria-pressed="${ans.a === k}">${icon(glyph[k], 16)} ${label}</button>`;
   let answerUI;
   if (c.type === 'checklist') {
     const items = ans.items || [];
     answerUI = `<div class="checklist">${c.items.map((it, i) => `<label class="chk"><input type="checkbox" data-chk="${c.id}" data-i="${i}" ${items[i] ? 'checked' : ''}> ${esc(it)}</label>`).join('')}</div>
       <div class="answers">${btn('na', 'N/A')}<span class="muted small">Score = proportion d’items cochés</span></div>`;
   } else {
-    answerUI = `<div class="answers">${btn('yes', '✓ Conforme')}${btn('partial', '◐ Partiel')}${btn('no', '✗ Non conforme')}${c.na ? btn('na', 'N/A') : ''}</div>`;
+    answerUI = `<div class="answers">${btn('yes', 'Conforme')}${btn('partial', 'Partiel')}${btn('no', 'Non conforme')}${c.na ? btn('na', 'N/A') : ''}</div>`;
   }
   return `<article class="criterion ${isAnswered(c, ans) ? 'answered' : ''} ${ans.a || ''}" id="crit-${c.id}">
     <div class="crit-head">
       <span class="crit-id">${c.id}</span>
       <span class="badge crit-${c.crit}" title="${cr.label} (poids ${cr.weight})">${cr.label}</span>
-      <button class="help" data-help="${c.id}" title="Aide / source">?</button>
+      <button class="help" data-help="${c.id}" title="Aide — ${c.id}" aria-label="Aide — ${c.id}" aria-expanded="false">${icon('info', 16)}</button>
     </div>
     <p class="crit-text">${esc(c.text)}</p>
     <div class="crit-help" id="help-${c.id}" hidden>
@@ -229,7 +241,7 @@ function criterionCard(c) {
     ${answerUI}
     <div class="crit-extra">
       <textarea class="note" data-note="${c.id}" rows="1" placeholder="Observations, preuves, constats…">${esc(ans.note || '')}</textarea>
-      <label class="btn small photo-btn">📷 <span id="pc-${c.id}">${ans.photos ? ans.photos : ''}</span><input type="file" accept="image/*" capture="environment" data-photo="${c.id}" hidden></label>
+      <label class="btn small photo-btn" tabindex="0" aria-label="Ajouter une photo — ${c.id}">${icon('camera', 14)} <span id="pc-${c.id}">${ans.photos ? ans.photos : ''}</span><input type="file" accept="image/*" capture="environment" data-photo="${c.id}" hidden></label>
     </div>
     <div class="thumbs" id="thumbs-${c.id}"></div>
   </article>`;
@@ -244,7 +256,7 @@ function bindCriteria() {
     if (!ans.a) delete ans.a;
     persist();
     const card = $(`#crit-${id}`);
-    card.querySelectorAll('[data-ans]').forEach(x => x.classList.toggle('on', x.dataset.ans === ans.a));
+    card.querySelectorAll('[data-ans]').forEach(x => { x.classList.toggle('on', x.dataset.ans === ans.a); x.setAttribute('aria-pressed', x.dataset.ans === ans.a); });
     card.className = `criterion ${isAnswered(map[id], ans) ? 'answered' : ''} ${ans.a || ''}`;
     refreshSectionScores();
   });
@@ -263,7 +275,7 @@ function bindCriteria() {
     grow();
     t.oninput = () => { const ans = current.answers[t.dataset.note] || (current.answers[t.dataset.note] = {}); ans.note = t.value; persist(); grow(); };
   });
-  app.querySelectorAll('[data-help]').forEach(b => b.onclick = () => { const h = $(`#help-${b.dataset.help}`); h.hidden = !h.hidden; });
+  app.querySelectorAll('[data-help]').forEach(b => b.onclick = () => { const h = $(`#help-${b.dataset.help}`); h.hidden = !h.hidden; b.setAttribute('aria-expanded', String(!h.hidden)); });
   app.querySelectorAll('[data-photo]').forEach(inp => inp.onchange = async () => {
     const id = inp.dataset.photo, f = inp.files[0]; if (!f) return;
     const dataUrl = await store.resizeImage(f);
@@ -281,7 +293,7 @@ async function loadThumbs(critId) {
   const photos = await store.getPhotos(current.id, critId);
   const el = $(`#thumbs-${critId}`); if (!el) return;
   $(`#pc-${critId}`).textContent = photos.length || '';
-  el.innerHTML = photos.map(p => `<div class="thumb"><img src="${p.dataUrl}" alt="photo"><button data-delphoto="${p.id}" title="Supprimer">×</button></div>`).join('');
+  el.innerHTML = photos.map(p => `<div class="thumb"><img src="${p.dataUrl}" alt="Photo ${critId}"><button data-delphoto="${p.id}" title="Supprimer la photo" aria-label="Supprimer la photo">${icon('x', 12)}</button></div>`).join('');
   el.querySelectorAll('[data-delphoto]').forEach(b => b.onclick = async () => {
     if (!confirm('Supprimer cette photo ?')) return;
     await store.deletePhoto(b.dataset.delphoto);
@@ -309,6 +321,9 @@ function refreshSectionScores(d) {
   if (tabs) { const left = tabs.scrollLeft; tabs.outerHTML = evalTabs(); $('.tabs').scrollLeft = left; }
 }
 
+// Variables CSS d'un palier (remplissage, fond teinté, texte) — état lisible par la teinte ET le libellé
+function tierVars(t) { return t ? `--c:${t.color};--bg:${t.bg};--fg:${t.fg}` : '--c:#ADB2B6;--bg:#EBECED;--fg:#56565A'; }
+
 // ---------------- Synthèse ----------------
 function radarSVG(domains, size = 320) {
   const cx = size / 2, cy = size / 2, r = size / 2 - 40, n = domains.length;
@@ -329,10 +344,10 @@ function renderSummary() {
   const body = `
     <div class="summary-top">
       <div class="panel overall">
-        <div class="gauge" style="--c:${sc.tier ? sc.tier.color : '#999'}"><span>${sc.overall === null ? '—' : Math.round(sc.overall * 100)}<small>%</small></span></div>
+        <div class="gauge" style="${tierVars(sc.tier)};--v:${sc.overall === null ? 0 : Math.round(sc.overall * 100)}"><span>${sc.overall === null ? '—' : Math.round(sc.overall * 100)}<small>%</small></span></div>
         <div>
           <h2>Score global pondéré</h2>
-          <p>${sc.tier ? `<b style="color:${sc.tier.color}">${sc.tier.label}</b> (${sc.tier.min}–${sc.tier.max} %)` : 'Non calculé'}</p>
+          <p>${sc.tier ? `<span class="tier-label" style="${tierVars(sc.tier)}">${sc.tier.label}</span> <span class="muted">(${sc.tier.min}–${sc.tier.max} %)</span>` : 'Non calculé'}</p>
           <p class="muted">${sc.answered}/${sc.total} critères renseignés${sc.answered < sc.total ? ` — <span class="warn">évaluation incomplète</span>` : ''}</p>
           <p class="muted small">Le score de chaque domaine pondère les critères par criticité (Critique ×3, Majeur ×2, Mineur ×1). Les critères « N/A » sont exclus. Le score global pondère les domaines selon les poids définis.</p>
         </div>
@@ -341,43 +356,43 @@ function renderSummary() {
     </div>
 
     <section class="panel">
-      <h2>Scores par domaine et priorités d’amélioration</h2>
+      <h2>${icon('chart', 14)} Scores par domaine et priorités d’amélioration</h2>
       <table class="tbl">
         <thead><tr><th>Domaine</th><th>Score</th><th>Palier</th><th>Poids</th><th>Priorité</th><th>Critiques NC</th></tr></thead>
         <tbody>${sc.domains.map(d => `<tr>
-          <td><span class="code" style="background:${d.color}">${d.code}</span> ${esc(d.title)}<div class="muted small">${d.answered}/${d.total} répondus</div></td>
-          <td><b>${pct(d.score)}</b><div class="bar"><div style="width:${(d.score || 0) * 100}%;background:${d.color}"></div></div></td>
-          <td>${d.tier ? `<span class="tier" style="background:${d.tier.color}">${d.tier.label}</span>` : '—'}</td>
+          <td><span class="code" style="--c:${d.color}">${d.code}</span> ${esc(d.title)}<div class="muted small">${d.answered}/${d.total} répondus</div></td>
+          <td>${pct(d.score)}<div class="bar"><div style="width:${(d.score || 0) * 100}%;background:${d.color}"></div></div></td>
+          <td>${d.tier ? `<span class="tier" style="${tierVars(d.tier)}">${d.tier.label}</span>` : '—'}</td>
           <td>${Math.round(d.weight * 100)} %</td>
-          <td>${d.priority === null ? '—' : `<b>${(d.priority * 100).toFixed(1)}</b><div class="bar"><div style="width:${d.priority / maxP * 100}%;background:#c0392b"></div></div>`}</td>
+          <td>${d.priority === null ? '—' : `${(d.priority * 100).toFixed(1)}<div class="bar"><div style="width:${d.priority / maxP * 100}%;background:var(--negative-icon)"></div></div>`}</td>
           <td>${d.critFails.length ? `<span class="badge crit-C">${d.critFails.length}</span>` : '0'}</td>
         </tr>`).join('')}</tbody>
       </table>
       <p class="muted small">Priorité = poids × (1 − score) : plus la valeur est élevée, plus le domaine mérite un effort de renforcement. Approche par paliers recommandée : viser d’abord 36 % dans tous les domaines, puis 71 %, puis 100 %.</p>
       <h3>Détail par section</h3>
-      <div class="sections-grid">${sc.domains.map(d => `<div><h4 style="color:${d.color}">${d.code} ${esc(d.short)}</h4>${d.sections.map(s => `<div class="secline"><span>${esc(s.title)}</span><b>${pct(s.score)}</b><div class="bar"><div style="width:${(s.score || 0) * 100}%;background:${d.color}"></div></div></div>`).join('')}</div>`).join('')}</div>
+      <div class="sections-grid">${sc.domains.map(d => `<div><h4 style="--c:${d.color}">${d.code} ${esc(d.short)}</h4>${d.sections.map(s => `<div class="secline"><span>${esc(s.title)}</span><b>${pct(s.score)}</b><div class="bar"><div style="width:${(s.score || 0) * 100}%;background:${d.color}"></div></div></div>`).join('')}</div>`).join('')}</div>
     </section>
 
     <section class="panel">
-      <h2>Non-conformités (${ncs.length}) ${sc.critFails.length ? `<span class="badge crit-C">${sc.critFails.length} critiques</span>` : ''}</h2>
+      <h2>${icon('alert', 14)} Non-conformités (${ncs.length}) ${sc.critFails.length ? `<span class="badge crit-C">${sc.critFails.length} critiques</span>` : ''}</h2>
       <p class="muted small">Classées par criticité. Cliquez sur une ligne pour retourner au critère.</p>
       ${ncs.length ? `<table class="tbl nc"><thead><tr><th>#</th><th>Crit.</th><th>Domaine</th><th>Constat</th><th>Réponse</th><th>Recommandation</th></tr></thead><tbody>
         ${ncs.map(c => `<tr class="clickable" data-go="/eval/${current.id}/domain/${c.domain.id}" data-anchor="crit-${c.id}">
           <td>${c.id}</td><td><span class="badge crit-${c.crit}">${CRITICALITY[c.crit].short}</span></td>
-          <td><span class="code" style="background:${c.domain.color}">${c.domain.code}</span></td>
-          <td>${esc(c.text)}${c.note ? `<div class="note-preview">📝 ${esc(c.note)}</div>` : ''}</td>
+          <td><span class="code" style="--c:${c.domain.color}">${c.domain.code}</span></td>
+          <td>${esc(c.text)}${c.note ? `<div class="note-preview">${icon('note', 10)} ${esc(c.note)}</div>` : ''}</td>
           <td>${c.value === 0 ? '<span class="tag no">Non conforme</span>' : c.value === 0.5 ? '<span class="tag partial">Partiel</span>' : `<span class="tag partial">${Math.round(c.value * 100)} %</span>`}</td>
           <td class="small">${esc(c.reco || '')}</td></tr>`).join('')}
-      </tbody></table>` : '<p class="ok">Aucune non-conformité identifiée parmi les critères renseignés.</p>'}
+      </tbody></table>` : '<p class="empty">Aucune non-conformité identifiée parmi les critères renseignés.</p>'}
     </section>
 
     <section class="panel">
-      <h2>Exporter</h2>
+      <h2>${icon('download', 14)} Exporter</h2>
       <div class="row">
-        <button class="btn" id="exp-json">💾 JSON (sauvegarde / partage)</button>
-        <button class="btn" id="exp-csv">📄 CSV (Excel)</button>
-        <a class="btn" href="#/eval/${current.id}/report">🖨 Rapport imprimable / PDF</a>
-        <a class="btn" href="#/eval/${current.id}/photos">🖼 Photos</a>
+        <button class="btn" id="exp-json">${icon('download', 12)} JSON (sauvegarde / partage)</button>
+        <button class="btn" id="exp-csv">${icon('fileText', 12)} CSV (Excel)</button>
+        <a class="btn" href="#/eval/${current.id}/report">${icon('printer', 12)} Rapport imprimable / PDF</a>
+        <a class="btn" href="#/eval/${current.id}/photos">${icon('image', 12)} Photos</a>
       </div>
     </section>`;
   shell(esc(current.info.warehouse || 'Synthèse'), body, { back: '/' });
@@ -396,14 +411,14 @@ async function renderReport() {
   const infoRows = IDENTIFICATION_FIELDS.filter(f => info[f.id]).map(f => `<tr><th>${esc(f.label)}</th><td>${esc(info[f.id])}</td></tr>`).join('');
   const body = `
     <div class="report">
-      <div class="no-print row end"><button class="btn primary" onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button></div>
+      <div class="no-print row end"><button class="btn primary" onclick="window.print()">${icon('printer', 12)} Imprimer / Enregistrer en PDF</button></div>
       <h1>Rapport d’évaluation des Bonnes Pratiques d’Entreposage</h1>
       <p class="muted">${esc(info.organisation || '')} — <b>${esc(info.warehouse || '')}</b> ${info.location ? '· ' + esc(info.location) : ''} · ${esc(info.date || '')}</p>
       <div class="report-cols">
         <table class="tbl info"><tbody>${infoRows}</tbody></table>
         <div class="center">
-          <div class="gauge" style="--c:${sc.tier ? sc.tier.color : '#999'}"><span>${sc.overall === null ? '—' : Math.round(sc.overall * 100)}<small>%</small></span></div>
-          <p><b>${sc.tier ? sc.tier.label : ''}</b><br><span class="muted small">${sc.answered}/${sc.total} critères renseignés</span></p>
+          <div class="gauge" style="${tierVars(sc.tier)};--v:${sc.overall === null ? 0 : Math.round(sc.overall * 100)}"><span>${sc.overall === null ? '—' : Math.round(sc.overall * 100)}<small>%</small></span></div>
+          <p><span class="tier-label" style="${tierVars(sc.tier)}">${sc.tier ? sc.tier.label : ''}</span><br><span class="muted small">${sc.answered}/${sc.total} critères renseignés</span></p>
           ${radarSVG(sc.domains, 280)}
         </div>
       </div>
@@ -419,7 +434,7 @@ async function renderReport() {
         ${ncs.map(c => `<tr><td>${c.id}</td><td>${CRITICALITY[c.crit].label}</td><td>${esc(c.text)}</td><td>${c.value === 0 ? 'Non conforme' : 'Partiel'}</td><td>${esc(c.note)}</td><td>${esc(c.reco || '')}</td><td></td><td></td></tr>`).join('')}
       </tbody></table>
       <h2>4. Détail de tous les critères</h2>
-      ${DOMAINS.map(d => `<h3>${d.code} ${esc(d.title)}</h3><table class="tbl small"><tbody>${d.sections.map(s => `<tr class="sec"><td colspan="4">${esc(s.title)}</td></tr>` + s.criteria.map(c => { const a = current.answers[c.id] || {}; const v = criterionValue(c, a); const lab = a.a === 'na' ? 'N/A' : v === null ? 'Non renseigné' : c.type === 'checklist' ? Math.round(v * 100) + ' %' : ANSWERS[a.a].label; return `<tr><td>${c.id}</td><td>${CRITICALITY[c.crit].short}</td><td>${esc(c.text)}${a.note ? `<div class="muted small">📝 ${esc(a.note)}</div>` : ''}</td><td class="${a.a || ''}">${lab}</td></tr>`; }).join('')).join('')}</tbody></table>`).join('')}
+      ${DOMAINS.map(d => `<h3>${d.code} ${esc(d.title)}</h3><table class="tbl small"><tbody>${d.sections.map(s => `<tr class="sec"><td colspan="4">${esc(s.title)}</td></tr>` + s.criteria.map(c => { const a = current.answers[c.id] || {}; const v = criterionValue(c, a); const lab = a.a === 'na' ? 'N/A' : v === null ? 'Non renseigné' : c.type === 'checklist' ? Math.round(v * 100) + ' %' : ANSWERS[a.a].label; return `<tr><td>${c.id}</td><td>${CRITICALITY[c.crit].short}</td><td>${esc(c.text)}${a.note ? `<div class="muted small">${icon('note', 10)} ${esc(a.note)}</div>` : ''}</td><td class="${a.a || ''}">${lab}</td></tr>`; }).join('')).join('')}</tbody></table>`).join('')}
       ${photos.length ? `<h2>5. Photos (${photos.length})</h2><div class="photo-grid">${photos.map(p => `<figure><img src="${p.dataUrl}"><figcaption>${p.critId}</figcaption></figure>`).join('')}</div>` : ''}
       <p class="muted small">Référentiel : OMS TRS 1025 Annexe 7 (2020) — Bonnes pratiques de stockage et de distribution des produits médicaux ; OMS TRS 961 Annexe 9 ; USAID | DELIVER Guidelines for Warehousing Health Commodities ; PFSCM Pharmaceutical Wholesaler Site Inspection Checklist ; outil GWP GHSC-FTA.</p>
     </div>`;
@@ -439,16 +454,16 @@ function renderCompare() {
   const rows = list.map(e => ({ e, sc: computeScores(e) }));
   const body = list.length < 1 ? '<p class="muted">Aucune évaluation à comparer.</p>' : `
     <section class="panel">
-      <h2>Comparaison des entrepôts</h2>
-      <div class="scroll"><table class="tbl compare"><thead><tr><th>Entrepôt</th><th>Date</th><th>Global</th>${DOMAINS.map(d => `<th><span class="code" style="background:${d.color}">${d.code}</span><br><small>${esc(d.short)}</small></th>`).join('')}<th>NC crit.</th></tr></thead>
+      <h2>${icon('chart', 14)} Comparaison des entrepôts</h2>
+      <div class="scroll"><table class="tbl compare"><thead><tr><th>Entrepôt</th><th>Date</th><th>Global</th>${DOMAINS.map(d => `<th><span class="code" style="--c:${d.color}">${d.code}</span><br><small>${esc(d.short)}</small></th>`).join('')}<th>NC crit.</th></tr></thead>
       <tbody>${rows.map(({ e, sc }) => `<tr><td><a href="#/eval/${e.id}/summary"><b>${esc(e.info.warehouse || 'Sans nom')}</b></a><div class="muted small">${esc(e.info.organisation || '')}</div></td><td>${esc(e.info.date || '')}</td>
-        <td><span class="score-bubble small" style="background:${sc.tier ? sc.tier.color : '#999'}">${sc.overall === null ? '—' : Math.round(sc.overall * 100)}</span></td>
-        ${sc.domains.map(d => `<td><span class="cell" style="background:${d.tier ? d.tier.color : '#ccc'}">${d.score === null ? '—' : Math.round(d.score * 100)}</span></td>`).join('')}
+        <td><span class="score-bubble small" style="${tierVars(sc.tier)}">${sc.overall === null ? '—' : Math.round(sc.overall * 100)}</span></td>
+        ${sc.domains.map(d => `<td><span class="cell" style="${tierVars(d.tier)}">${d.score === null ? '—' : Math.round(d.score * 100)}</span></td>`).join('')}
         <td>${sc.critFails.length}</td></tr>`).join('')}
       ${rows.length > 1 ? `<tr class="avg"><td colspan="2"><b>Moyenne</b></td><td><b>${avg(rows.map(r => r.sc.overall))}</b></td>${DOMAINS.map((d, i) => `<td><b>${avg(rows.map(r => r.sc.domains[i].score))}</b></td>`).join('')}<td></td></tr>` : ''}
       </tbody></table></div>
     </section>
-    <section class="panel"><h2>Profils</h2><div class="radars">${rows.map(({ e, sc }) => `<div><h4>${esc(e.info.warehouse || 'Sans nom')}</h4>${radarSVG(sc.domains, 240)}</div>`).join('')}</div></section>`;
+    <section class="panel"><h2>${icon('chart', 14)} Profils</h2><div class="radars">${rows.map(({ e, sc }) => `<div><h4>${esc(e.info.warehouse || 'Sans nom')}</h4>${radarSVG(sc.domains, 240)}</div>`).join('')}</div></section>`;
   shell('Comparaison', body, { back: '/' });
 }
 function avg(vals) { const v = vals.filter(x => x !== null && x !== undefined); return v.length ? Math.round(100 * v.reduce((a, b) => a + b, 0) / v.length) : '—'; }
@@ -458,18 +473,18 @@ function renderSettings() {
   const s = store.loadSettings();
   shell('Paramètres', `
     <section class="panel">
-      <h2>Pondération par défaut des domaines</h2>
+      <h2>${icon('settings', 14)} Pondération par défaut des domaines</h2>
       <p class="muted small">Appliquée aux nouvelles évaluations (chaque évaluation peut ensuite ajuster ses poids).</p>
-      <div class="weights">${DOMAINS.map(d => `<label><span class="code" style="background:${d.color}">${d.code}</span> ${esc(d.short)} <input type="number" min="0" max="100" data-w="${d.id}" value="${Math.round((s.weights[d.id] ?? d.weight) * 100)}"> %</label>`).join('')}</div>
+      <div class="weights">${DOMAINS.map(d => `<label><span class="code" style="--c:${d.color}">${d.code}</span> ${esc(d.short)} <input type="number" min="0" max="100" data-w="${d.id}" value="${Math.round((s.weights[d.id] ?? d.weight) * 100)}"> %</label>`).join('')}</div>
       <div class="row"><button class="btn primary" id="save-w">Enregistrer</button><button class="btn" id="reset-w">Valeurs par défaut</button></div>
     </section>
     <section class="panel">
-      <h2>Données</h2>
-      <div class="row"><button class="btn" id="exp-all">💾 Exporter toutes les évaluations (JSON)</button>
-      <button class="btn danger" id="wipe">Effacer toutes les données locales</button></div>
+      <h2>${icon('download', 14)} Données</h2>
+      <div class="row"><button class="btn" id="exp-all">${icon('download', 12)} Exporter toutes les évaluations (JSON)</button>
+      <button class="btn danger" id="wipe">${icon('trash', 12)} Effacer toutes les données locales</button></div>
     </section>
     <section class="panel">
-      <h2>À propos</h2>
+      <h2>${icon('info', 14)} À propos</h2>
       <p>Version 1.0 — ${criteriaCount()} critères. <a href="#/about">Méthodologie et sources</a>.</p>
     </section>`, { back: '/' });
   $('#save-w').onclick = () => { const w = {}; app.querySelectorAll('[data-w]').forEach(i => w[i.dataset.w] = (parseFloat(i.value) || 0) / 100); const tot = Object.values(w).reduce((a, b) => a + b, 0); if (Math.abs(tot - 1) > 0.001) { alert(`Le total doit être 100 % (actuellement ${Math.round(tot * 100)} %).`); return; } store.saveSettings({ ...s, weights: w }); flash('Enregistré'); };
@@ -485,7 +500,7 @@ function renderReferentiel() {
       <p>${criteriaCount()} critères. Criticité : <span class="badge crit-C">Critique ×3</span> <span class="badge crit-M">Majeur ×2</span> <span class="badge crit-m">Mineur ×1</span>. <a href="#/about">Méthodologie et sources ›</a></p>
       <input type="search" id="q" placeholder="Rechercher un critère, une référence (ex. TRS 1025 §12.23, FEFO, incendie)…" class="search">
     </section>
-    <div id="ref-list">${DOMAINS.map(d => `<section class="panel ref-dom" data-dom="${d.id}"><h2><span class="code" style="background:${d.color}">${d.code}</span> ${esc(d.title)} <small class="muted">(poids ${Math.round(d.weight * 100)} %)</small></h2>
+    <div id="ref-list">${DOMAINS.map(d => `<section class="panel ref-dom" data-dom="${d.id}"><h2><span class="code" style="--c:${d.color}">${d.code}</span> ${esc(d.title)} <small class="muted">(poids ${Math.round(d.weight * 100)} %)</small></h2>
       ${d.sections.map(s => `<h3>${esc(s.title)}</h3><table class="tbl small ref"><tbody>${s.criteria.map(c => `<tr class="refrow"><td>${c.id}</td><td><span class="badge crit-${c.crit}">${CRITICALITY[c.crit].short}</span>${c.na ? '<div class="muted small">N/A possible</div>' : ''}</td><td><b>${esc(c.text)}</b>${c.items ? `<ul class="small">${c.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul>` : ''}<div class="small"><i>Vérification :</i> ${esc(c.guide || '')}</div><div class="small muted">${esc(c.ref || '')}</div></td></tr>`).join('')}</tbody></table>`).join('')}</section>`).join('')}</div>`, { back: '/' });
   $('#q').oninput = () => { const q = $('#q').value.toLowerCase(); app.querySelectorAll('.refrow').forEach(r => r.hidden = q && !r.textContent.toLowerCase().includes(q)); };
 }
@@ -521,6 +536,6 @@ function renderAbout() {
 }
 
 // ---------------- Init ----------------
-document.body.insertAdjacentHTML('beforeend', '<div id="toast"></div>');
+document.body.insertAdjacentHTML('beforeend', '<div id="toast" role="status" aria-live="polite"></div>');
 route();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('./sw.js').catch(() => {});
